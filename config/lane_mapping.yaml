@@ -1,0 +1,65 @@
+dataset:
+    name: "openlane"
+    dataset_dir: "/media/qzj/Document/datasets/OpenLane/"
+    annotation_dir: '/media/qzj/Document/datasets/OpenLane/lane3d_1000/validation'
+    extrinsic: [9.99920175e-01, 4.45399714e-04, -1.26271973e-02, 1.54408774e+00,
+                -4.96265061e-04, 9.99991775e-01, -4.02539017e-03, -2.41725982e-02,
+                 1.26253005e-02, 4.03133528e-03, 9.99912171e-01, 2.11585277e+00,
+                 0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 1.00000000e+00]
+
+preprocess:
+    range_area: [3, 50, -10, 10] # [x_min, x_max, y_min, y_max]
+    downsample: 0.5
+    dim: 3 # 2 or 3
+    drop_prob: 0.0 # default 0.0
+
+evaluation:
+    eval_area: [-10, 10, 3, 50] # [x_min, x_max, y_min, y_max]
+    intervals: [10, 20, 30, 40, 50] # in m
+    overlap_thd: 0.75 # determine whether a lane is matched if overlap ratio is larger than this threshold
+    dist_thd: 0.5 # in m determine whether a lane is matched if distance is smaller than this threshold
+
+pose_update:
+    add_odo_noise: false # default false
+    odom_noise: [0.0, 0.0, 0.5, 0.5, 0.5, 0.0] # [roll, pitch, yaw, x, y, z] in degree and m
+    use_huber: true # default true is better
+    meas_noise: -1 # in m adaptive measurement noise is better
+    huber_thresh: 0.5 # in m 0.5 is better than 1.0
+    max_range: 100 # in m using all measurements is better
+    # reproject和reproject_error效果相当，前者略好但计算量大
+    reproject: false # default false
+    reproject_error: true # default false
+    iterative: false # default false is enough
+
+lane_mapping:
+    window_size: 10
+    ctrl_points_chord: 3.0
+    ctrl_noise: [0.5, 0.5, 0.5] # [x, y, z] in m
+    lane_meas_noise: [0.1, 1.0] # [lower_bound, upper_bound] in m, this hyperparameter does not affect the result
+    lane_sample_num: 5 # number of samples every two knots
+    z_filter_alpha: 0 # default 0 the weight of the previous z value, this hyperparameter does not affect the result
+    merge_lane: false # default false
+    skeleton_angle_thd: 90 # in degree
+    init_after_opt: false # default false
+    tau: 0.5 # default 0.5
+
+lane_asso:
+    method: "knn" # clipper or knn or shell
+    yaw_std: 0.1 # in degree
+    trans_std: 0.2 # in m
+    lane_width: 3.5 # in m
+
+knn:
+    knn_type: "xyz" # xyz or lmr
+    min_match_ratio: 0.5
+    use_consistency: true
+clipper:
+    weighted: false
+    noise_bound: 1.0
+    min_match_ratio: 0.5
+shell:
+    radius: 1.5
+    min_match_ratio: 0.5
+
+fstep_bm: 10 # frame step for association benchmark
+vis_downsample: 0.1

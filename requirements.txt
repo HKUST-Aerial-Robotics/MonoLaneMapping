@@ -1,0 +1,9 @@
+empy
+catkin_pkg
+rospkg
+gnupg
+pycryptodomex
+pycairo
+numpy
+jaxlie
+open3d
