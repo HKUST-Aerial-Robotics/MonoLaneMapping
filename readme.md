@@ -1,6 +1,9 @@
 <div align="center">
     <img src="docs/mono_lam.png" alt="MonoLaM">
 </div>
+<div align="center">
+<a href="https://arxiv.org/abs/2307.11653"><img src="https://img.shields.io/badge/arXiv-2307.11653-004088.svg"/></a>
+</div>
 
 ## Introduction
 ![overview](./docs/system.png)
@@ -49,7 +52,7 @@ We validate the method based on the [OpenLane](https://github.com/OpenDriveLab/O
 Specifically, we use [PersFormer](https://github.com/OpenDriveLab/PersFormer_3DLane) to predict 3D lane markings and save them along with GT and calibration parameters ([Details](docs/annotation.md)). The camera coord sys (OpenLane) is x-front, y-left, z-up. 
 However, you may feel confused if you want precess by yourself using [PersFormer](https://github.com/OpenDriveLab/PersFormer_3DLane). Because its camera coord sys is different from OpenLane (please refer to [issue 24](https://github.com/OpenDriveLab/OpenLane/issues/24).
 
-Download link [[OneDrive]](https://hkustconnect-my.sharepoint.com/:u:/g/personal/zqiaoac_connect_ust_hk/EQxCBwl1Wc5Foq1wNOJ7ZKQBrNik0GK_qa7qEed_zrbGmQ?e=bYSYvk)
+Download link [[OneDrive]](https://hkustconnect-my.sharepoint.com/:u:/g/personal/zqiaoac_connect_ust_hk/EQxCBwl1Wc5Foq1wNOJ7ZKQBrNik0GK_qa7qEed_zrbGmQ?e=bYSYvk)[[Baidu Cloud]](https://pan.baidu.com/s/1Hrd8ashoiB4_f0B-iz6OHQ?pwd=2023)
 
 Unzip the downloaded file.
 ```angular2html
