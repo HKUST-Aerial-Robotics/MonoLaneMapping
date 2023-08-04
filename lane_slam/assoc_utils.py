@@ -3,7 +3,7 @@ from scipy.spatial.transform import Rotation as R
 from scipy.spatial import KDTree
 import math
 from lane_slam.km_matcher import get_km_match
-import clipperpy
+# import clipperpy
 from misc.config import cfg
 from misc.plot_utils import visualize_points_list
 import open3d as o3d
@@ -378,114 +378,114 @@ class KnnASSOC:
         xyz_lmr = np.concatenate([xyz[:, :self.dim], delta_angle * weight], axis=1)
         return xyz_lmr
 
-class LaneInvariant(clipperpy.invariants.PairwiseInvariant):
-    def __init__(self,
-                 dim = 3):
-        clipperpy.invariants.PairwiseInvariant.__init__(self)
+# class LaneInvariant(clipperpy.invariants.PairwiseInvariant):
+#     def __init__(self,
+#                  dim = 3):
+#         clipperpy.invariants.PairwiseInvariant.__init__(self)
+#
+#         self.dist_std = cfg.clipper.dist_std
+#         self.dim = cfg.preprocess.dim
+#         self.ϵ = cfg.clipper.noise_bound
+#         self.weighted = cfg.clipper.weighted
+#
+#     def median_dist(self, ai, aj):
+#         lane_ai = ai['xyz']
+#         lane_aj = aj['xyz']
+#         num_ai = lane_ai.shape[0]
+#         num_aj = lane_aj.shape[0]
+#         # dist = np.linalg.norm(lane_ai[num_ai//2, :self.dim] - lane_aj[num_aj//2, :self.dim])
+#         dist = np.linalg.norm(np.mean(lane_ai, axis=0) - np.mean(lane_aj, axis=0))
+#         return dist
+#
+#     def __call__(self, ai, aj, bi, bj):
+#         if ai['category'] != bi['category'] or aj['category'] != bj['category']:
+#             return 0.0
+#         l1 = self.median_dist(ai, aj)
+#         l2 = self.median_dist(bi, bj)
+#         c = np.abs(l1 - l2)
+#         if self.weighted:
+#             prob = np.exp(-0.5*c*c/(self.dist_std**2))
+#         else:
+#             prob = 1
+#         return prob if c < self.ϵ else 0.0
 
-        self.dist_std = cfg.clipper.dist_std
-        self.dim = cfg.preprocess.dim
-        self.ϵ = cfg.clipper.noise_bound
-        self.weighted = cfg.clipper.weighted
-
-    def median_dist(self, ai, aj):
-        lane_ai = ai['xyz']
-        lane_aj = aj['xyz']
-        num_ai = lane_ai.shape[0]
-        num_aj = lane_aj.shape[0]
-        # dist = np.linalg.norm(lane_ai[num_ai//2, :self.dim] - lane_aj[num_aj//2, :self.dim])
-        dist = np.linalg.norm(np.mean(lane_ai, axis=0) - np.mean(lane_aj, axis=0))
-        return dist
-
-    def __call__(self, ai, aj, bi, bj):
-        if ai['category'] != bi['category'] or aj['category'] != bj['category']:
-            return 0.0
-        l1 = self.median_dist(ai, aj)
-        l2 = self.median_dist(bi, bj)
-        c = np.abs(l1 - l2)
-        if self.weighted:
-            prob = np.exp(-0.5*c*c/(self.dist_std**2))
-        else:
-            prob = 1
-        return prob if c < self.ϵ else 0.0
-
-class ClipperAssoc:
-    def __init__(self):
-        self.invariant = LaneInvariant()
-        self.params = clipperpy.Params()
-        self.clipper = clipperpy.CLIPPER(self.invariant, self.params)
-        self.dim = cfg.preprocess.dim
-        self.lands_lm = []
-        self.lanes_det = []
-
-    def association(self):
-        M, C, A = self.score_pairwise_consistency(self.invariant, self.lands_lm, self.lanes_det)
-        self.clipper.set_matrix_data(M, C, A)
-        self.clipper.solve()
-        Ain = self.clipper.get_selected_associations()
-        return Ain
-
-    def score_pairwise_consistency(self, invariant, D1, D2, A = None):
-        if A is None:
-            A = clipperpy.utils.create_all_to_all(len(D1), len(D2))
-
-        m = A.shape[0]
-
-        M = np.eye(m)
-        C = np.ones((m,m))
-
-        for k in range(int(m*(m-1)/2)):
-            i, j = self.k2ij(k, m) # or clipperpy.utils.k2ij
-
-            if A[i,0] == A[j,0] or A[i,1] == A[j,1]:
-                C[i,j] = C[j,i] = 0
-                continue
-            d1i = D1[A[i,0]]
-            d1j = D1[A[j,0]]
-
-            d2i = D2[A[i,1]]
-            d2j = D2[A[j,1]]
-
-            scr = invariant(d1i,d1j,d2i,d2j)
-
-            if scr > 0:
-                M[i,j] = M[j,i] = scr
-            else:
-                C[i,j] = C[j,i] = 0
-
-        return M, C, A
-
-    def k2ij(self, k, n):
-        k += 1
-
-        l = n * (n-1) / 2 - k
-        o = np.floor( (np.sqrt(1 + 8*l) - 1) / 2. )
-        p = l - o * (o + 1) / 2
-        i = n - (o + 1)
-        j = n - p
-
-        return int(i-1), int(j-1)
-
-    def set_landmark(self, lanes_lm):
-        self.lands_lm = lanes_lm
-        for i in range(len(self.lands_lm)):
-            # self.lands_lm[i]['kdtree'] = KDTree(self.lands_lm[i]['xyz'][:, :self.dim])
-            self.lands_lm[i]['xyz'] = self.lands_lm[i]['xyz'][:, :self.dim]
-
-    def set_deteciton(self, lanes_det, pose_ab):
-        self.lanes_det = lanes_det
-        for i in range(len(self.lanes_det)):
-            xyz = self.lanes_det[i]['xyz'][:, :self.dim]
-            xyz = self.transform_xyz(xyz, pose_ab)
-            self.lanes_det[i]['xyz'] = xyz
-            # self.lanes_det[i]['kdtree'] = KDTree(self.lanes_det[i]['xyz'][:, :self.dim])
-
-    def transform_xyz(self, xyz, pose_ab):
-        if self.dim == 3:
-            xyz = np.dot(pose_ab[:3, :3], xyz.T).T + pose_ab[:3, 3]
-        else:
-            xyz = np.dot(pose_ab[:2, :2], xyz.T).T + pose_ab[:2, 2]
-        return xyz
+# class ClipperAssoc:
+#     def __init__(self):
+#         self.invariant = LaneInvariant()
+#         self.params = clipperpy.Params()
+#         self.clipper = clipperpy.CLIPPER(self.invariant, self.params)
+#         self.dim = cfg.preprocess.dim
+#         self.lands_lm = []
+#         self.lanes_det = []
+#
+#     def association(self):
+#         M, C, A = self.score_pairwise_consistency(self.invariant, self.lands_lm, self.lanes_det)
+#         self.clipper.set_matrix_data(M, C, A)
+#         self.clipper.solve()
+#         Ain = self.clipper.get_selected_associations()
+#         return Ain
+#
+#     def score_pairwise_consistency(self, invariant, D1, D2, A = None):
+#         if A is None:
+#             A = clipperpy.utils.create_all_to_all(len(D1), len(D2))
+#
+#         m = A.shape[0]
+#
+#         M = np.eye(m)
+#         C = np.ones((m,m))
+#
+#         for k in range(int(m*(m-1)/2)):
+#             i, j = self.k2ij(k, m) # or clipperpy.utils.k2ij
+#
+#             if A[i,0] == A[j,0] or A[i,1] == A[j,1]:
+#                 C[i,j] = C[j,i] = 0
+#                 continue
+#             d1i = D1[A[i,0]]
+#             d1j = D1[A[j,0]]
+#
+#             d2i = D2[A[i,1]]
+#             d2j = D2[A[j,1]]
+#
+#             scr = invariant(d1i,d1j,d2i,d2j)
+#
+#             if scr > 0:
+#                 M[i,j] = M[j,i] = scr
+#             else:
+#                 C[i,j] = C[j,i] = 0
+#
+#         return M, C, A
+#
+#     def k2ij(self, k, n):
+#         k += 1
+#
+#         l = n * (n-1) / 2 - k
+#         o = np.floor( (np.sqrt(1 + 8*l) - 1) / 2. )
+#         p = l - o * (o + 1) / 2
+#         i = n - (o + 1)
+#         j = n - p
+#
+#         return int(i-1), int(j-1)
+#
+#     def set_landmark(self, lanes_lm):
+#         self.lands_lm = lanes_lm
+#         for i in range(len(self.lands_lm)):
+#             # self.lands_lm[i]['kdtree'] = KDTree(self.lands_lm[i]['xyz'][:, :self.dim])
+#             self.lands_lm[i]['xyz'] = self.lands_lm[i]['xyz'][:, :self.dim]
+#
+#     def set_deteciton(self, lanes_det, pose_ab):
+#         self.lanes_det = lanes_det
+#         for i in range(len(self.lanes_det)):
+#             xyz = self.lanes_det[i]['xyz'][:, :self.dim]
+#             xyz = self.transform_xyz(xyz, pose_ab)
+#             self.lanes_det[i]['xyz'] = xyz
+#             # self.lanes_det[i]['kdtree'] = KDTree(self.lanes_det[i]['xyz'][:, :self.dim])
+#
+#     def transform_xyz(self, xyz, pose_ab):
+#         if self.dim == 3:
+#             xyz = np.dot(pose_ab[:3, :3], xyz.T).T + pose_ab[:3, 3]
+#         else:
+#             xyz = np.dot(pose_ab[:2, :2], xyz.T).T + pose_ab[:2, 2]
+#         return xyz
 
 class ShellAssoc:
     def __init__(self):

@@ -31,8 +31,6 @@ pip install -r requirements.txt
 ```
 ### GTSAM
 Follow the [official guide](https://gtsam.org/get_started/) to install GTSAM with [Python Bindings](https://github.com/borglab/gtsam/blob/develop/python/README.md).
-### CLIPPER
-Follow the [modified version](https://github.com/qiaozhijian/clipper.git) to install CLIPPER with Python Bindings.
 ### OpenLane ROS Package
 ```angular2html
 mkdir -p catkin_ws/src
@@ -79,7 +77,7 @@ python examples/mapping_bm.py --cfg_file=config/lane_mapping.yaml
 # evaluation of lane recall and precision
 python examples/openlane_eval3d.py --cfg_file=config/lane_mapping.yaml
 # lane association evaluation
-python examples/ascia_bm.py --cfg_file config/lane_association.yaml --bm
+python examples/lane_association.py --cfg_file config/lane_association.yaml --bm
 ```
 **Toy example for curve fitting**
 ```

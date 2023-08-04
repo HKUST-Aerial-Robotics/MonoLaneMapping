@@ -1,7 +1,8 @@
 from misc.plot_utils import visualize_points_list
 from misc.ros_utils.msg_utils import posemsg_to_np, lanemsg_to_list
 from lane_slam.assoc_utils import get_lane_assoc_gt, make_noisy_lane, get_precision_recall, ShellAssoc, \
-    KnnASSOC, ClipperAssoc
+    KnnASSOC
+# from lane_slam.assoc_utils import ClipperAssoc
 import rosbag
 from misc.lie_utils import get_pose2d_noise
 from copy import deepcopy
@@ -43,8 +44,8 @@ class EvalOneSegment:
                 A, stats = self.lane_assoc_knn(lane_lm, lane_det_noisy, pose_ab_noisy)
             elif cfg.lane_asso.method == 'shell':
                 A, stats = self.lane_assoc_by_shell(lane_lm, lane_det_noisy, pose_ab_noisy)
-            elif cfg.lane_asso.method == 'clipper':
-                A, stats = self.lane_assoc_clipper(lane_lm, lane_det_noisy, pose_ab_noisy)
+            # elif cfg.lane_asso.method == 'clipper':
+            #     A, stats = self.lane_assoc_clipper(lane_lm, lane_det_noisy, pose_ab_noisy)
             else:
                 raise NotImplementedError
             f1, precision, recall = get_precision_recall(A, Agt)
@@ -143,15 +144,15 @@ class EvalOneSegment:
         A = shell_assoc.get_assoc(lane_det, pose_ab)
         return A, None
 
-    def lane_assoc_clipper(self, lanes_lm, lanes_det, pose_ab):
-        clipper_assoc = ClipperAssoc()
-        clipper_assoc.set_landmark(lanes_lm)
-        clipper_assoc.set_deteciton(lanes_det, pose_ab)
-        A = clipper_assoc.association()
-        A_ = []
-        for i, j in A:
-            A_.append([i, j])
-        return A_, None
+    # def lane_assoc_clipper(self, lanes_lm, lanes_det, pose_ab):
+    #     clipper_assoc = ClipperAssoc()
+    #     clipper_assoc.set_landmark(lanes_lm)
+    #     clipper_assoc.set_deteciton(lanes_det, pose_ab)
+    #     A = clipper_assoc.association()
+    #     A_ = []
+    #     for i, j in A:
+    #         A_.append([i, j])
+    #     return A_, None
 
     def lane_assoc_knn(self, lanes_lm, lanes_det, pose_ab):
         knn_assoc = KnnASSOC()

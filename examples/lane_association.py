@@ -64,18 +64,18 @@ def main(output_file):
     print(result_str)
     sys.stdout.close()
 
-def clipper_bm():
-    cfg.lane_asso.method = 'clipper'
-    for min_match_ratio in [0.5]:
-        cfg.clipper.min_match_ratio = min_match_ratio
-        for weighted in [False]:
-            cfg.clipper.weighted = weighted
-            for noise_bound in [5]:
-                cfg.clipper.noise_bound = noise_bound
-                output_dir = cfg.output_dir
-                output_file = os.path.join(output_dir, 'eval-clipper-m{}-w{}-n{}.txt'.
-                                           format(min_match_ratio, weighted, noise_bound))
-                main(output_file)
+# def clipper_bm():
+#     cfg.lane_asso.method = 'clipper'
+#     for min_match_ratio in [0.5]:
+#         cfg.clipper.min_match_ratio = min_match_ratio
+#         for weighted in [False]:
+#             cfg.clipper.weighted = weighted
+#             for noise_bound in [5]:
+#                 cfg.clipper.noise_bound = noise_bound
+#                 output_dir = cfg.output_dir
+#                 output_file = os.path.join(output_dir, 'eval-clipper-m{}-w{}-n{}.txt'.
+#                                            format(min_match_ratio, weighted, noise_bound))
+#                 main(output_file)
 
 def knn_bm():
     cfg.lane_asso.method = 'knn'
@@ -104,7 +104,7 @@ def shell_bm():
 def benchmark():
 
     shell_bm()
-    clipper_bm()
+    # clipper_bm()
     knn_bm()
 
 
