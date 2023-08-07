@@ -45,19 +45,21 @@ catkin_make
 ```
 
 ## OpenLane Example
-We validate the method based on the [OpenLane](https://github.com/OpenDriveLab/OpenLane) dataset. Users do not need to download this dataset, they just need to download the data we provide after preprocessing with [openlane_bag](https://github.com/qiaozhijian/openlane_bag.git).
+We validate the method based on the [OpenLane](https://github.com/OpenDriveLab/OpenLane) dataset. Users need to download this dataset and the rosbags we provide after preprocessing with [openlane_bag](https://github.com/qiaozhijian/openlane_bag.git).
 
 Specifically, we use [PersFormer](https://github.com/OpenDriveLab/PersFormer_3DLane) to predict 3D lane markings and save them along with GT and calibration parameters ([Details](docs/annotation.md)). The camera coord sys (OpenLane) is x-front, y-left, z-up. 
 However, you may feel confused if you want preprocess by yourself using [PersFormer](https://github.com/OpenDriveLab/PersFormer_3DLane). Because its camera coord sys is different from OpenLane (please refer to [issue 24](https://github.com/OpenDriveLab/OpenLane/issues/24).
 
-Download link [[OneDrive]](https://hkustconnect-my.sharepoint.com/:u:/g/personal/zqiaoac_connect_ust_hk/EQxCBwl1Wc5Foq1wNOJ7ZKQBrNik0GK_qa7qEed_zrbGmQ?e=bYSYvk)[[Baidu Cloud]](https://pan.baidu.com/s/1Hrd8ashoiB4_f0B-iz6OHQ?pwd=2023)
+Rosbag download link [[OneDrive]](https://hkustconnect-my.sharepoint.com/:u:/g/personal/zqiaoac_connect_ust_hk/EQxCBwl1Wc5Foq1wNOJ7ZKQBrNik0GK_qa7qEed_zrbGmQ?e=bYSYvk)[[Baidu Cloud]](https://pan.baidu.com/s/1Hrd8ashoiB4_f0B-iz6OHQ?pwd=2023)
 
-Unzip the downloaded file.
+Unzip the downloaded file and put it in the `OpenLane dataset` folder.
 ```angular2html
 ├── OpenLane
 │   └── lane3d_1000
 │       ├── rosbag
 │       └── test
+│       └── validation
+│       └── training
 ```
 Modify the `config/lane_mapping.yaml` file to change the dataset path.
 ```angular2html
