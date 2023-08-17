@@ -92,7 +92,7 @@ class LaneMapping(LaneOptimizer):
         for lm in self.lanes_in_map.values():
             score = lm.obs_num / (lm.obs_last_frame_id - lm.obs_first_frame_id + 1)
             # print(lm.id, lm.obs_num, score)
-            if score < 0.5 or lm.obs_num < 10:
+            if score < 0.5 and lm.obs_num > 2:
                 overlap_id.append(lm.id)
 
         for lane_id_a, lane_feature_a in self.lanes_in_map.items():
