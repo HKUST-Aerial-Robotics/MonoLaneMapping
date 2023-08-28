@@ -3,6 +3,19 @@
 </div>
 <div align="center">
 <a href="https://arxiv.org/abs/2307.11653"><img src="https://img.shields.io/badge/arXiv-2307.11653-004088.svg"/></a>
+<a href="https://www.youtube.com/watch?v=9aHNV3TQ6xw">
+<img alt="Youtube" src="https://img.shields.io/badge/Video-Youtube-red"/>
+</a>
+<a ><img alt="PRs-Welcome" src="https://img.shields.io/badge/PRs-Welcome-red" /></a>
+<a href="https://github.com/HKUST-Aerial-Robotics/MonoLaneMapping/stargazers">
+<img alt="stars" src="https://img.shields.io/github/stars/qiaozhijian/RoboArxiv" />
+</a>
+<a href="https://github.com/HKUST-Aerial-Robotics/MonoLaneMapping/network/members">
+<img alt="FORK" src="https://img.shields.io/github/forks/qiaozhijian/RoboArxiv?color=FF8000" />
+</a>
+<a href="https://github.com/HKUST-Aerial-Robotics/MonoLaneMapping/issues">
+<img alt="Issues" src="https://img.shields.io/github/issues/qiaozhijian/RoboArxiv?color=0088ff"/>
+</a>
 </div>
 
 ## Introduction
