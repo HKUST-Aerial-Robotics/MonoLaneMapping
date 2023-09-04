@@ -47,6 +47,8 @@ data_splits
 .cache
 
 *.pcd
+!examples/data/lane.pcd
+!examples/data/lane_selected.pcd
 
 pred_results
 PCD-*
