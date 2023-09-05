@@ -20,7 +20,7 @@ def main(bag_file):
 
     result = {}
     # initialize lane mapper
-    lane_mapper = LaneMapping(bag_file)
+    lane_mapper = LaneMapping(bag_file, save_result=False)
     # process the bag file
     stats = lane_mapper.process()
     result[lane_mapper.segment] = stats

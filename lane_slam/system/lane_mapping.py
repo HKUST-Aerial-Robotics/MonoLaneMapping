@@ -12,19 +12,19 @@ from misc.config import cfg
 import numpy as np
 
 class LaneMapping(LaneOptimizer):
-    def __init__(self, bag_file):
+    def __init__(self, bag_file, save_result=True):
         super(LaneMapping, self).__init__(bag_file)
         self.load_data()
         self.tracking_init()
         self.graph_init()
         self.debug_init()
+        self.save_result = save_result
 
     def process(self):
         for frame_id, frame_data in enumerate(tqdm.tqdm(self.frames_data, leave=False, dynamic_ncols=True)):
             pose_wc = frame_data['gt_pose']
             timestamp = frame_data['timestamp']
             lane_pts_c = drop_lane_by_p(deepcopy(frame_data['lanes_predict']), p=cfg.preprocess.drop_prob)
-            self.save_pred_to_json(lane_pts_c, timestamp)
             self.time_stamp.append(timestamp)
 
             # 1. odometry
@@ -41,13 +41,15 @@ class LaneMapping(LaneOptimizer):
             self.map_update()
             self.prev_frame = self.cur_frame
             self.whole_timer.update(perf_counter() - t0)
-
-            self.save_lanes_to_json(self.cur_frame)
-            # self.save_for_visualization(self.cur_frame)
             self.lane_nms(self.cur_frame)
 
             if self.merge_lane:
                 self.post_merge_lane()
+
+            if self.save_result:
+                self.save_pred_to_json(lane_pts_c, timestamp)
+                self.save_lanes_to_json(self.cur_frame)
+                # self.save_for_visualization(self.cur_frame)
 
         # print('whole time: %.3fms, odo: %.3fms, assoc: %.3fms, graph: %.3fms, isam: %.3fms' % (
         #     self.whole_timer.avg * 1000, self.odo_timer.avg * 1000, self.assoc_timer.avg * 1000,
