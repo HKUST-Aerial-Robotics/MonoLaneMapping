@@ -86,6 +86,7 @@ python examples/demo_mapping.py --cfg_file=config/lane_mapping.yaml
 ```
 **Reproduce the results in the paper**
 ```
+#In this step, users need to download the original [OpenLane](https://github.com/OpenDriveLab/OpenLane) dataset and merge it with our provided dataset.
 cd src/MonoLaneMapping
 # lane mapping and save the results
 python examples/mapping_bm.py --cfg_file=config/lane_mapping.yaml
