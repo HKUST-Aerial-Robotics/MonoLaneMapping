@@ -280,6 +280,8 @@ class LaneUI:
         for lane in frame.get_lane_features():
             if lane.id == -1:
                 continue
+            if lane.id not in self.lanes_in_map:
+                continue
             lane_lm = self.lanes_in_map[lane.id]
             xyz_w = lane_lm.points[:,:3].copy()
             xyz_c = transform_points(xyz_w, frame.T_cw)
