@@ -102,13 +102,14 @@ python examples/demo_curve_fitting.py
 ## Citation
 If you find this work useful in your research, please consider citing:
 ```
-@INPROCEEDINGS{qiao_monolam,
-  author={Zhijian Qiao, Zehuan Yu, Huan Yin and Shaojie Shen},
-  booktitle={2023 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS)}, 
-  title={Online Monocular Lane Mapping Using Catmull-Rom Spline}, 
+@inproceedings{qiao2023online,
+  title={Online monocular lane mapping using catmull-rom spline},
+  author={Qiao, Zhijian and Yu, Zehuan and Yin, Huan and Shen, Shaojie},
+  booktitle={2023 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS)},
+  pages={7179--7186},
   year={2023},
-  volume={},
-  number={}}
+  organization={IEEE}
+}
 ```
 
 ## License
