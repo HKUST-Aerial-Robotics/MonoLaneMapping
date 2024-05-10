@@ -70,7 +70,7 @@ class LaneTracker(LaneUI):
             self.raw_pose.append(cam0_pose)
             T_wc = cam0_pose
 
-        # transform lane points from current frame to world frame
+        # Initialize the current frame
         lane_pts_c = self.get_lane_in_range(lane_pts_c)
         self.max_frame_id  = self.max_frame_id + 1
         self.cur_frame = Frame(self.max_frame_id, lane_pts_c, T_wc, timestamp)
