@@ -25,7 +25,7 @@
 
 from __future__ import print_function
 import numpy as np
-from ortools.graph import pywrapgraph
+from ortools.graph.python.min_cost_flow import SimpleMinCostFlow
 import time
 
 
@@ -38,7 +38,7 @@ def SolveMinCostFlow(adj_mat, cost_mat):
     """
 
     # Instantiate a SimpleMinCostFlow solver.
-    min_cost_flow = pywrapgraph.SimpleMinCostFlow()
+    min_cost_flow = SimpleMinCostFlow()
     # Define the directed graph for the flow.
 
     cnt_1, cnt_2 = adj_mat.shape
@@ -46,50 +46,50 @@ def SolveMinCostFlow(adj_mat, cost_mat):
     cnt_nonzero_col = int(np.sum(np.sum(adj_mat, axis=0) > 0))
 
     # prepare directed graph for the flow
-    start_nodes = np.zeros(cnt_1, dtype=np.int).tolist() +\
+    start_nodes = np.zeros(cnt_1, dtype=int).tolist() +\
                   np.repeat(np.array(range(1, cnt_1+1)), cnt_2).tolist() + \
                   [i for i in range(cnt_1+1, cnt_1 + cnt_2 + 1)]
     end_nodes = [i for i in range(1, cnt_1+1)] + \
                 np.repeat(np.array([i for i in range(cnt_1+1, cnt_1 + cnt_2 + 1)]).reshape([1, -1]), cnt_1, axis=0).flatten().tolist() + \
                 [cnt_1 + cnt_2 + 1 for i in range(cnt_2)]
-    capacities = np.ones(cnt_1, dtype=np.int).tolist() + adj_mat.flatten().astype(np.int).tolist() + np.ones(cnt_2, dtype=np.int).tolist()
-    costs = (np.zeros(cnt_1, dtype=np.int).tolist() + cost_mat.flatten().astype(np.int).tolist() + np.zeros(cnt_2, dtype=np.int).tolist())
+    capacities = np.ones(cnt_1, dtype=int).tolist() + adj_mat.flatten().astype(int).tolist() + np.ones(cnt_2, dtype=int).tolist()
+    costs = (np.zeros(cnt_1, dtype=int).tolist() + cost_mat.flatten().astype(int).tolist() + np.zeros(cnt_2, dtype=int).tolist())
     # Define an array of supplies at each node.
-    supplies = [min(cnt_nonzero_row, cnt_nonzero_col)] + np.zeros(cnt_1 + cnt_2, dtype=np.int).tolist() + [-min(cnt_nonzero_row, cnt_nonzero_col)]
-    # supplies = [min(cnt_1, cnt_2)] + np.zeros(cnt_1 + cnt_2, dtype=np.int).tolist() + [-min(cnt_1, cnt_2)]
+    supplies = [min(cnt_nonzero_row, cnt_nonzero_col)] + np.zeros(cnt_1 + cnt_2, dtype=int).tolist() + [-min(cnt_nonzero_row, cnt_nonzero_col)]
+    # supplies = [min(cnt_1, cnt_2)] + np.zeros(cnt_1 + cnt_2, dtype=int).tolist() + [-min(cnt_1, cnt_2)]
     source = 0
     sink = cnt_1 + cnt_2 + 1
 
     # Add each arc.
     for i in range(len(start_nodes)):
-        min_cost_flow.AddArcWithCapacityAndUnitCost(start_nodes[i], end_nodes[i],
+        min_cost_flow.add_arc_with_capacity_and_unit_cost(start_nodes[i], end_nodes[i],
                                                     capacities[i], costs[i])
 
     # Add node supplies.
     for i in range(len(supplies)):
-        min_cost_flow.SetNodeSupply(i, supplies[i])
+        min_cost_flow.set_node_supply(i, supplies[i])
 
     match_results = []
     # Find the minimum cost flow between node 0 and node 10.
-    if min_cost_flow.Solve() == min_cost_flow.OPTIMAL:
-        # print('Total cost = ', min_cost_flow.OptimalCost())
+    if min_cost_flow.solve() == min_cost_flow.OPTIMAL:
+        # print('Total cost = ', min_cost_flow.optimal_cost())
         # print()
-        for arc in range(min_cost_flow.NumArcs()):
+        for arc in range(min_cost_flow.num_arcs()):
 
             # Can ignore arcs leading out of source or into sink.
-            if min_cost_flow.Tail(arc)!=source and min_cost_flow.Head(arc)!=sink:
+            if min_cost_flow.tail(arc)!=source and min_cost_flow.head(arc)!=sink:
 
                 # Arcs in the solution have a flow value of 1. Their start and end nodes
                 # give an assignment of worker to task.
 
-                if min_cost_flow.Flow(arc) > 0:
+                if min_cost_flow.flow(arc) > 0:
                     # print('set A item %d assigned to set B item %d.  Cost = %d' % (
-                    #     min_cost_flow.Tail(arc)-1,
-                    #     min_cost_flow.Head(arc)-cnt_1-1,
-                    #     min_cost_flow.UnitCost(arc)))
-                    match_results.append([min_cost_flow.Tail(arc)-1,
-                                          min_cost_flow.Head(arc)-cnt_1-1,
-                                          min_cost_flow.UnitCost(arc)])
+                    #     min_cost_flow.tail(arc)-1,
+                    #     min_cost_flow.head(arc)-cnt_1-1,
+                    #     min_cost_flow.unit_cost(arc)))
+                    match_results.append([min_cost_flow.tail(arc)-1,
+                                          min_cost_flow.head(arc)-cnt_1-1,
+                                          min_cost_flow.unit_cost(arc)])
     else:
         print('There was an issue with the min cost flow input.')
 
@@ -100,7 +100,7 @@ def main():
     """Solving an Assignment Problem with MinCostFlow"""
 
     # Instantiate a SimpleMinCostFlow solver.
-    min_cost_flow = pywrapgraph.SimpleMinCostFlow()
+    min_cost_flow = SimpleMinCostFlow()
     # Define the directed graph for the flow.
 
     start_nodes = [0, 0, 0, 0] + [1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4] + [5, 6, 7, 8]
@@ -115,36 +115,36 @@ def main():
 
     # Add each arc.
     for i in range(len(start_nodes)):
-        min_cost_flow.AddArcWithCapacityAndUnitCost(start_nodes[i], end_nodes[i],
+        min_cost_flow.add_arc_with_capacity_and_unit_cost(start_nodes[i], end_nodes[i],
                                                     capacities[i], costs[i])
 
     # Add node supplies.
 
     for i in range(len(supplies)):
-        min_cost_flow.SetNodeSupply(i, supplies[i])
+        min_cost_flow.set_node_supply(i, supplies[i])
     # Find the minimum cost flow between node 0 and node 10.
-    if min_cost_flow.Solve() == min_cost_flow.OPTIMAL:
-        print('Total cost = ', min_cost_flow.OptimalCost())
+    if min_cost_flow.solve() == min_cost_flow.OPTIMAL:
+        print('Total cost = ', min_cost_flow.optimal_cost())
         print()
-        for arc in range(min_cost_flow.NumArcs()):
+        for arc in range(min_cost_flow.num_arcs()):
 
             # Can ignore arcs leading out of source or into sink.
-            if min_cost_flow.Tail(arc)!=source and min_cost_flow.Head(arc)!=sink:
+            if min_cost_flow.tail(arc)!=source and min_cost_flow.head(arc)!=sink:
 
                 # Arcs in the solution have a flow value of 1. Their start and end nodes
                 # give an assignment of worker to task.
 
-                if min_cost_flow.Flow(arc) > 0:
+                if min_cost_flow.flow(arc) > 0:
                     print('Worker %d assigned to task %d.  Cost = %d' % (
-                        min_cost_flow.Tail(arc),
-                        min_cost_flow.Head(arc),
-                        min_cost_flow.UnitCost(arc)))
+                        min_cost_flow.tail(arc),
+                        min_cost_flow.head(arc),
+                        min_cost_flow.unit_cost(arc)))
     else:
         print('There was an issue with the min cost flow input.')
 
 
 if __name__ == '__main__':
-    start_time = time.clock()
+    start_time = time.perf_counter()
     main()
     print()
-    print("Time =", time.clock() - start_time, "seconds")
+    print("Time =", time.perf_counter() - start_time, "seconds")

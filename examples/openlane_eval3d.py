@@ -3,8 +3,7 @@ import os
 import sys
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../"))
 sys.path.append(ROOT_DIR)
-from misc.config import define_args
-from misc.config import cfg, cfg_from_yaml_file
+from misc.config import cfg, config_from_args, define_args
 from evaluation.eval_3D_lane import eval_epoch
 from tqdm import tqdm
 import glob
@@ -83,9 +82,7 @@ def analyse_stats():
 if __name__ == '__main__':
 
     args = define_args()
-    cfg_from_yaml_file(os.path.join(ROOT_DIR, args.cfg_file), cfg)
-    cfg_name = args.cfg_file.split('/')[-1].split('.')[0]
-    cfg.output_dir = os.path.join(cfg.ROOT_DIR, "outputs", cfg_name)
+    config_from_args(args)
     np.random.seed(666)
     # draw_maps()
     eval_epoch()

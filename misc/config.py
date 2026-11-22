@@ -88,13 +88,28 @@ def cfg_from_yaml_file(cfg_file, config):
     return config
 
 
-def define_args():
+def define_args(demo=False):
     parser = argparse.ArgumentParser(description='Lane Mapper')
     parser.add_argument('--cfg_file', type=str, required=True, help='specify the config for examples')
     parser.add_argument('--bm', default=False, action='store_true', help='specify the config for examples')
     parser.add_argument('--eval_pose', default=False, action='store_true', help='specify the config for examples')
     parser.add_argument('--debug_mode', default=False, action='store_true', help='specify the config for examples')
+    parser.add_argument('--dataset_dir', type=Path, help='OpenLane root directory')
+    parser.add_argument('--output_dir', type=Path, help='Output directory for this run')
+    if demo:
+        parser.add_argument('--bag', type=Path, help='Record to replay, defaults to the bundled example')
     return parser.parse_args()
+
+
+def config_from_args(args):
+    config_path = cfg.ROOT_DIR / args.cfg_file
+    cfg_from_yaml_file(config_path, cfg)
+    if args.dataset_dir is not None:
+        cfg.dataset.dataset_dir = str(args.dataset_dir.resolve())
+        if 'annotation_dir' in cfg.dataset:
+            cfg.dataset.annotation_dir = str(args.dataset_dir.resolve() / 'lane3d_1000/validation')
+    output_dir = args.output_dir or cfg.ROOT_DIR / 'outputs' / config_path.stem
+    cfg.output_dir = str(output_dir.resolve())
 
 # trick from stackoverflow
 def str2bool(argument):

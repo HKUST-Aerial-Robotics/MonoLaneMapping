@@ -5,7 +5,7 @@
 
 import open3d as o3d
 import numpy as np
-from misc.ros_utils.msg_utils import posemsg_to_np, lanemsg_to_list
+from lane_slam.bag_reader import read_openlane_frames
 from misc.config import cfg
 from lane_slam.lane_utils import lane_denoise, prune_3d_lane_by_range, points_downsample
 from misc.plot_utils import visualize_points_list
@@ -14,7 +14,6 @@ from misc.lie_utils import inv_se3
 from lane_slam.assoc_utils import draw_correspondences, draw_lines
 from misc.plot_utils import pointcloud_to_spheres, text_3d
 from lane_slam.lane_feature import LaneFeature
-import rosbag
 from misc.curve.catmull_rom import CatmullRomSpline, CatmullRomSplineList
 import tqdm
 from misc.utils import AverageMeter, mkdir_if_missing
@@ -23,12 +22,13 @@ import os
 import json
 from lane_slam.frame import Frame
 from evaluation.eval_3D_lane import eval_lane3d
+from pathlib import Path
 
 class LaneUI:
     def __init__(self, bag_file):
         self.pp_ds = cfg.preprocess.downsample # downsample size in pre-processing
-        self.bag = rosbag.Bag(bag_file)
-        self.segment = bag_file.split('/')[-1].split('.')[0]
+        self.bag_file = bag_file
+        self.segment = Path(bag_file).stem
         self.eval_pose_only = cfg.eval_pose
         self.add_odo_noise = cfg.pose_update.add_odo_noise
         self.merge_lane = cfg.lane_mapping.merge_lane
@@ -192,37 +192,12 @@ class LaneUI:
         visualize_points_list([lane_mapping, lane_gt, lane_pred], axis_marker=1)
     def load_data(self):
         self.eval_area = cfg.evaluation.eval_area
-        frames_data = []
-        gt_pose_msg = None
-        lanes_gt_msg = None
-        lanes_predict_msg = None
-        for topic, msg, timestamp in self.bag.read_messages():
-            if topic == '/gt_pose_wc':
-                gt_pose_msg = msg
-            elif topic == '/lanes_gt':
-                lanes_gt_msg = msg
-            elif topic == '/lanes_predict':
-                lanes_predict_msg = msg
-            else :
-                raise ValueError('Unknown topic: {}'.format(topic))
-            if gt_pose_msg is not None and lanes_gt_msg is not None and lanes_predict_msg is not None \
-                    and gt_pose_msg.header.stamp == lanes_gt_msg.header.stamp \
-                    and gt_pose_msg.header.stamp == lanes_predict_msg.header.stamp:
-                gt_pose_wc = posemsg_to_np(gt_pose_msg)
-                lanes_gt = lanemsg_to_list(lanes_gt_msg)
-                lanes_predict = lanemsg_to_list(lanes_predict_msg)
-                lanes_gt = self.preprocess_lanes(lanes_gt)
-                lanes_predict = self.preprocess_lanes(lanes_predict)
-                frames_data.append({
-                    'timestamp': gt_pose_msg.header.stamp.to_sec(),
-                    'gt_pose': gt_pose_wc,
-                    'lanes_gt': lanes_gt,
-                    'lanes_predict': lanes_predict
-                })
-                gt_pose_msg = None
-                lanes_gt_msg = None
-                lanes_predict_msg = None
-
+        frames_data = list(read_openlane_frames(self.bag_file))
+        if not frames_data:
+            raise ValueError(f'{self.bag_file}: no synchronized OpenLane frames')
+        for frame in frames_data:
+            self.preprocess_lanes(frame['lanes_gt'])
+            self.preprocess_lanes(frame['lanes_predict'])
         self.frames_data = frames_data
     def preprocess_lanes(self, lanes):
         for lane in lanes:

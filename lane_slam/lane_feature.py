@@ -5,8 +5,6 @@
 import numpy as np
 from scipy.spatial import KDTree
 import matplotlib.pyplot as plt
-import matplotlib
-matplotlib.use('TkAgg')
 
 from misc.config import cfg
 from lane_slam.linked_points import LinkedPoints

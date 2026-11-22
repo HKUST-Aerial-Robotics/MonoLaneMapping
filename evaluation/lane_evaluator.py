@@ -1,4 +1,4 @@
-from evaluation.eval_utils import mp_load_json
+from pathlib import Path
 import json
 from tqdm import tqdm
 from evaluation.lane3d import Lane3D, fitting
@@ -20,74 +20,18 @@ class LaneEval(object):
         self.close_range = 40
 
     def bench_one_submit(self, pred_dir, gt_dir, test_txt, prob_th=0.5, vis=False):
-        pred_lines = open(test_txt).readlines()
-        gt_lines = pred_lines
-
-        json_pred = mp_load_json(pred_lines, pred_dir, mp=True)
-        json_gt = mp_load_json(gt_lines, gt_dir, mp=True)
-        gts = {l['file_path']: l for l in json_gt}
+        pred_lines = Path(test_txt).read_text().splitlines()
+        pred_dir, gt_dir = Path(pred_dir), Path(gt_dir)
 
         laneline_stats = []
         laneline_error = []
-        for _, pred in enumerate(tqdm(json_pred, dynamic_ncols=True, leave=False, desc='Evaluating')):
-            if 'file_path' not in pred or 'lane_lines' not in pred:
-                raise Exception('file_path or lane_lines not in some predictions.')
-            raw_file = pred['file_path']
-            pred_lanelines = pred['lane_lines']
-            pred_lanes = [np.array(lane['xyz']) for _, lane in enumerate(pred_lanelines)]
-            pred_category = [int(lane['category']) for _, lane in enumerate(pred_lanelines)]
-
-            if raw_file not in gts:
-                raise Exception('Some raw_file from your predictions do not exist in the test tasks.')
-            gt = gts[raw_file]
-
-            # evaluate lanelines
-            cam_extrinsics = np.array(gt['extrinsic'])
-            # Re-calculate extrinsic matrix based on ground coordinate
-            R_vg = np.array([[0, 1, 0],
-                             [-1, 0, 0],
-                             [0, 0, 1]], dtype=float)
-            R_gc = np.array([[1, 0, 0],
-                             [0, 0, 1],
-                             [0, -1, 0]], dtype=float)
-            cam_extrinsics[:3, :3] = np.matmul(np.matmul(
-                np.matmul(np.linalg.inv(R_vg), cam_extrinsics[:3, :3]),
-                R_vg), R_gc)
-
-            cam_extrinsics[0:2, 3] = 0.0
-
-            cam_intrinsics = gt['intrinsic']
-
-            try:
-                gt_lanes_packed = gt['lane_lines']
-            except:
-                print("error 'lane_lines' in gt: ", gt['file_path'])
-
-            gt_lanes, gt_visibility, gt_category = [], [], []
-            for j, gt_lane_packed in enumerate(gt_lanes_packed):
-                # A GT lane can be either 2D or 3D
-                # if a GT lane is 3D, the height is intact from 3D GT, so keep it intact here too
-                lane = np.array(gt_lane_packed['xyz'])
-                lane_visibility = np.array(gt_lane_packed['visibility'])
-
-                lane = np.vstack((lane, np.ones((1, lane.shape[1]))))
-                cam_representation = np.linalg.inv(
-                    np.array([[0, 0, 1, 0],
-                              [-1, 0, 0, 0],
-                              [0, -1, 0, 0],
-                              [0, 0, 0, 1]], dtype=float))
-                lane = np.matmul(cam_extrinsics, np.matmul(cam_representation, lane))
-                lane = lane[0:3, :].T
-
-                gt_lanes.append(lane)
-                gt_visibility.append(lane_visibility)
-                gt_category.append(gt_lane_packed['category'])
-
-            # N to N matching of lanelines
-            tp, c_lane, cnt_gt, cnt_pred, xyz_error = self.bench(pred_lanes,
-                                                                 pred_category,
-                                                                 gt_lanes,
-                                                                 gt_category)
+        for image_path in tqdm(pred_lines, dynamic_ncols=True, leave=False, desc='Evaluating'):
+            annotation = Path(image_path).with_suffix('.json')
+            with (pred_dir / annotation).open() as file:
+                pred = json.load(file)
+            with (gt_dir / annotation).open() as file:
+                gt = json.load(file)
+            tp, c_lane, cnt_gt, cnt_pred, xyz_error = self.bench_frame(pred, gt)
             laneline_stats.append(np.array([tp, c_lane, cnt_gt, cnt_pred]))
             # consider x_error z_error only for the matched lanes
             laneline_error.extend(xyz_error)
@@ -125,6 +69,52 @@ class LaneEval(object):
 
         return output_stats
 
+    def bench_frame(self, pred, gt):
+        """Score a prediction and one OpenLane annotation in ground coordinates."""
+        if 'file_path' not in pred or 'lane_lines' not in pred:
+            raise ValueError('Missing file_path or lane_lines in prediction')
+        if pred['file_path'] != gt['file_path']:
+            raise ValueError('Prediction and annotation refer to different images')
+
+        pred_lanelines = [lane for lane in pred['lane_lines'] if lane['xyz']]
+        pred_lanes = [np.array(lane['xyz']) for lane in pred_lanelines]
+        pred_category = [int(lane['category']) for lane in pred_lanelines]
+
+        # evaluate lanelines
+        cam_extrinsics = np.array(gt['extrinsic'])
+        # Re-calculate extrinsic matrix based on ground coordinate
+        R_vg = np.array([[0, 1, 0],
+                         [-1, 0, 0],
+                         [0, 0, 1]], dtype=float)
+        R_gc = np.array([[1, 0, 0],
+                         [0, 0, 1],
+                         [0, -1, 0]], dtype=float)
+        cam_extrinsics[:3, :3] = np.matmul(np.matmul(
+            np.matmul(np.linalg.inv(R_vg), cam_extrinsics[:3, :3]),
+            R_vg), R_gc)
+
+        cam_extrinsics[0:2, 3] = 0.0
+
+        gt_lanes, gt_category = [], []
+        for gt_lane_packed in gt['lane_lines']:
+            # A GT lane can be either 2D or 3D
+            # if a GT lane is 3D, the height is intact from 3D GT, so keep it intact here too
+            lane = np.array(gt_lane_packed['xyz'])
+
+            lane = np.vstack((lane, np.ones((1, lane.shape[1]))))
+            cam_representation = np.linalg.inv(
+                np.array([[0, 0, 1, 0],
+                          [-1, 0, 0, 0],
+                          [0, -1, 0, 0],
+                          [0, 0, 0, 1]], dtype=float))
+            lane = np.matmul(cam_extrinsics, np.matmul(cam_representation, lane))
+            lane = lane[0:3, :].T
+
+            gt_lanes.append(lane)
+            gt_category.append(gt_lane_packed['category'])
+
+        return self.bench(pred_lanes, pred_category, gt_lanes, gt_category)
+
     def bench(self, pred_lanes, pred_category, gt_lanes, gt_category):
         # change this properly
         lanes3d_gt = []
@@ -132,7 +122,8 @@ class LaneEval(object):
             xyz = prune_3d_lane_by_range(lane, (self.x_min, self.x_max, self.y_min, self.y_max))
             if xyz.shape[0] > 0:
                 xyz = fitting(xyz)
-                lanes3d_gt.append(Lane3D(xyz, category))
+                if xyz.shape[0] > 0:
+                    lanes3d_gt.append(Lane3D(xyz, category))
         lanes3d_pred = []
         for lane, category in zip(pred_lanes, pred_category):
             xyz = prune_3d_lane_by_range(lane, (self.x_min - 10, self.x_max + 10, self.y_min, self.y_max + 20))

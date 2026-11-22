@@ -37,7 +37,7 @@ Evaluation metrics includes:
 import os
 from misc.utils import mkdir_if_missing
 from misc.config import cfg
-from glob import glob
+from pathlib import Path
 from evaluation.lane_evaluator import LaneEval
 # from eval.lane_evaluator_openlane import LaneEval
 
@@ -66,43 +66,59 @@ def eval_lane3d(dataset_dir, pred_dir, test_list, output_dir, verbose=False):
 
 def eval_openlane(result_3d_dir, exp_name):
     print('Start to evaluate {} on test set'.format(exp_name))
-    cases = ['up_down_case','curve_case','extreme_weather_case','intersection_case','merge_split_case','night_case']
-    for case in cases:
+    test_dir = Path(cfg.dataset.dataset_dir) / 'lane3d_1000/test'
+    validation_dir = Path(cfg.dataset.annotation_dir)
+    cases = {
+        'up_down_case': '1000_updown.txt',
+        'curve_case': '1000_curve.txt',
+        'extreme_weather_case': '1000_extreme_weather.txt',
+        'intersection_case': '1000_intersection.txt',
+        'merge_split_case': '1000_merge_split_case.txt',
+        'night_case': '1000_night.txt',
+    }
+    for case, manifest in cases.items():
         print('Start to evaluate {} on case: {}'.format(exp_name, case))
-        # generate test list txt for both 2d and 3d
-        eval_case_dir = os.path.abspath(os.path.join(cfg.output_dir, 'eval_results', '{}'.format(case)))
-        mkdir_if_missing(eval_case_dir)
-        test_list = os.path.join(eval_case_dir, 'test_list.txt')
-
-        case_dir = os.path.join(cfg.dataset.dataset_dir, 'lane3d_1000/test', case)
-        with open(test_list, 'w') as f:
-            for seg_dir in glob(os.path.join(case_dir, '*')):
-                for json_file in glob(os.path.join(seg_dir, '*.json')):
-                    # only retain the last two parts of the path
-                    json_file = os.path.join(os.path.basename(seg_dir), os.path.basename(json_file))
-                    jpg_file = json_file.replace('.json', '.jpg')
-                    f.write(jpg_file + '\n')
-            f.close()
-
-        # 3d evaluation
-        annotation_dir = os.path.join(cfg.dataset.dataset_dir, 'lane3d_1000/test', case) + '/'
-        output_dir = os.path.join(eval_case_dir, 'eval_3d') + '/'
-        eval_3d_cmd(annotation_dir, result_3d_dir, test_list, output_dir, exp_name)
+        annotation_dir = test_dir / case
+        frames = _annotation_image_paths(annotation_dir)
+        if not frames:
+            split_file = test_dir / manifest
+            frames = _manifest_image_paths(split_file)
+            annotation_dir = validation_dir
+        _eval_split(annotation_dir, frames, case, result_3d_dir, exp_name)
 
     print('Start to evaluate {} on validation set'.format(exp_name))
-    annotation_dir = os.path.join(cfg.dataset.dataset_dir, 'lane3d_1000/validation') + '/'
-    mkdir_if_missing(os.path.abspath(os.path.join(cfg.output_dir, 'eval_results/validation')))
-    test_list = os.path.abspath(os.path.join(cfg.output_dir, 'eval_results/validation', 'test_list.txt'))
-    with open(test_list, 'w') as f:
-        for seg_dir in glob(os.path.join(annotation_dir, '*')):
-            for json_file in glob(os.path.join(seg_dir, '*.json')):
-                # only retain the last two parts of the path
-                json_file = os.path.join(os.path.basename(seg_dir), os.path.basename(json_file))
-                jpg_file = json_file.replace('.json', '.jpg')
-                f.write(jpg_file + '\n')
-        f.close()
-    output_dir = os.path.abspath(os.path.join(cfg.output_dir, 'eval_results/validation', 'eval_3d')) + '/'
-    eval_3d_cmd(annotation_dir, result_3d_dir, test_list, output_dir, exp_name)
+    _eval_split(validation_dir, _annotation_image_paths(validation_dir),
+                'validation', result_3d_dir, exp_name)
+
+
+def _manifest_image_paths(split_file):
+    frames = {}
+    for line in split_file.read_text().splitlines():
+        if not line.strip():
+            continue
+        segment, image = line.strip().split('/')[-2:]
+        # One published curve entry omits "_with" from the Waymo segment name.
+        if segment.endswith('_camera_labels') and not segment.endswith('_with_camera_labels'):
+            segment = segment.removesuffix('_camera_labels') + '_with_camera_labels'
+        frames[f'{segment}/{image}'] = None
+    return list(frames)
+
+
+def _annotation_image_paths(annotation_dir):
+    return [str(path.relative_to(annotation_dir).with_suffix('.jpg'))
+            for path in sorted(annotation_dir.glob('*/*.json'))]
+
+
+def _eval_split(annotation_dir, frames, split, result_dir, exp_name):
+    if not frames:
+        raise ValueError(f'No frames for {split} in {annotation_dir}')
+    eval_dir = Path(cfg.output_dir) / 'eval_results' / split
+    eval_dir.mkdir(parents=True, exist_ok=True)
+    test_list = eval_dir / 'test_list.txt'
+    test_list.write_text('\n'.join(frames) + '\n')
+    eval_3d_cmd(str(annotation_dir) + '/', result_dir, str(test_list),
+                str(eval_dir / 'eval_3d'), exp_name)
+
 
 def eval_3d_cmd(annotation_dir, result_dir, test_list, output_dir_default, exp_name):
     if 'results_det' in result_dir:

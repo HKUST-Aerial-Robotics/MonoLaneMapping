@@ -3,18 +3,15 @@
 # @author: Zhijian Qiao
 # @email: zqiaoac@connect.ust.hk
 import numpy as np
-from tqdm import tqdm
 import os
 import sys
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../"))
 sys.path.append(ROOT_DIR)
 from misc.utils import Logger
 from datetime import datetime
-import glob
 from lane_slam.system.lane_mapping import LaneMapping
 from misc.utils import mkdir_if_missing
-from misc.config import define_args
-from misc.config import cfg, cfg_from_yaml_file
+from misc.config import cfg, config_from_args, define_args
 
 def main(bag_file):
 
@@ -44,15 +41,13 @@ def main(bag_file):
 
 if __name__ == '__main__':
 
-    args = define_args()
+    args = define_args(demo=True)
     np.random.seed(666)
-    cfg_from_yaml_file(os.path.join(ROOT_DIR, args.cfg_file), cfg)
+    config_from_args(args)
 
     print("Load config file: ", args.cfg_file)
-    cfg.visualization = True
+    cfg.visualization = args.debug_mode
     cfg.eval_pose = args.eval_pose
-    cfg_name = args.cfg_file.split('/')[-1].split('.')[0]
-    cfg.output_dir = os.path.join(cfg.ROOT_DIR, "outputs", cfg_name)
     output_file = os.path.join(cfg.output_dir, 'logs', 'mapping-%s.txt' % datetime.now().strftime('%Y-%m-%d-%H-%M-%S'))
     mkdir_if_missing(os.path.join(cfg.output_dir, "logs"))
     mkdir_if_missing(os.path.join(cfg.output_dir, 'visualization'))
@@ -61,5 +56,5 @@ if __name__ == '__main__':
     mkdir_if_missing(os.path.join(cfg.output_dir, 'eval_results'))
     sys.stdout = Logger(output_file)
 
-    bag_file = os.path.join(ROOT_DIR, 'examples/data/segment-14486517341017504003_3406_349_3426_349_with_camera_labels.bag')
+    bag_file = args.bag or os.path.join(ROOT_DIR, 'examples/data/segment-14486517341017504003_3406_349_3426_349_with_camera_labels.bag')
     main(bag_file)

@@ -3,8 +3,6 @@
 # @author: Zhijian Qiao
 # @email: zqiaoac@connect.ust.hk
 import numpy as np
-import matplotlib
-matplotlib.use('TkAgg')
 
 from misc.curve.bspline_approx import CubicBSplineApproximator
 from misc.pcd_utils import split_lane_by_id

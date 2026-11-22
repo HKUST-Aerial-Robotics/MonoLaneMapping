@@ -13,8 +13,7 @@ from datetime import datetime
 import glob
 from lane_slam.system.lane_mapping import LaneMapping
 from misc.utils import mkdir_if_missing
-from misc.config import define_args
-from misc.config import cfg, cfg_from_yaml_file
+from misc.config import cfg, config_from_args, define_args
 from multiprocessing import Pool
 
 def run_segments(bag_paths):
@@ -46,7 +45,10 @@ def run_all_segments(bag_paths, multi_process=False, num_workers=20):
 
 def main(bag_paths):
 
-    result = run_all_segments(bag_paths, multi_process=not cfg.visualization)
+    if not bag_paths:
+        raise FileNotFoundError(f'No OpenLane bags in {cfg.dataset.dataset_dir}/lane3d_1000/rosbag')
+    result = run_all_segments(bag_paths, multi_process=not cfg.visualization,
+                              num_workers=min(20, len(bag_paths)))
 
     np.save(os.path.join(cfg.output_dir, 'stats.npy'), result)
     all_stats = {}
@@ -86,13 +88,11 @@ if __name__ == '__main__':
 
     args = define_args()
     np.random.seed(666)
-    cfg_from_yaml_file(os.path.join(ROOT_DIR, args.cfg_file), cfg)
+    config_from_args(args)
 
     print("Load config file: ", args.cfg_file)
     cfg.eval_pose = args.eval_pose
     cfg.visualization = True if args.debug_mode else False
-    cfg_name = args.cfg_file.split('/')[-1].split('.')[0]
-    cfg.output_dir = os.path.join(cfg.ROOT_DIR, "outputs", cfg_name)
     output_file = os.path.join(cfg.output_dir, 'logs', 'mapping-%s.txt' % datetime.now().strftime('%Y-%m-%d-%H-%M-%S'))
     mkdir_if_missing(os.path.join(cfg.output_dir, "logs"))
     mkdir_if_missing(os.path.join(cfg.output_dir, 'visualization'))

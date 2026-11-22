@@ -1,9 +1,8 @@
 from misc.plot_utils import visualize_points_list
-from misc.ros_utils.msg_utils import posemsg_to_np, lanemsg_to_list
+from lane_slam.bag_reader import read_openlane_frames
 from lane_slam.assoc_utils import get_lane_assoc_gt, make_noisy_lane, get_precision_recall, ShellAssoc, \
     KnnASSOC
 # from lane_slam.assoc_utils import ClipperAssoc
-import rosbag
 from misc.lie_utils import get_pose2d_noise
 from copy import deepcopy
 import numpy as np
@@ -17,7 +16,6 @@ from lane_slam.lane_feature import LaneFeature
 class EvalOneSegment:
     def __init__(self, bag_file):
         self.bag_file = bag_file
-        self.bag = rosbag.Bag(bag_file)
         self.pp_ds = cfg.preprocess.downsample # downsample size in pre-processing
         self.frames_data = self.load_data()
         self.step = cfg.lane_asso.fstep_bm
@@ -168,37 +166,12 @@ class EvalOneSegment:
         return A, stats
         
     def load_data(self):
-        frames_data = []
-        gt_pose_msg = None
-        lanes_gt_msg = None
-        lanes_predict_msg = None
-        for topic, msg, timestamp in self.bag.read_messages():
-            if topic == '/gt_pose_wc':
-                gt_pose_msg = msg
-            elif topic == '/lanes_gt':
-                lanes_gt_msg = msg
-            elif topic == '/lanes_predict':
-                lanes_predict_msg = msg
-            else :
-                raise ValueError('Unknown topic: {}'.format(topic))
-            if gt_pose_msg is not None and lanes_gt_msg is not None and lanes_predict_msg is not None \
-                    and gt_pose_msg.header.stamp == lanes_gt_msg.header.stamp \
-                    and gt_pose_msg.header.stamp == lanes_predict_msg.header.stamp:
-                gt_pose_wc = posemsg_to_np(gt_pose_msg)
-                lanes_gt = lanemsg_to_list(lanes_gt_msg)
-                lanes_predict = lanemsg_to_list(lanes_predict_msg)
-                lanes_gt = self.preprocess_lanes(lanes_gt)
-                lanes_predict = self.preprocess_lanes(lanes_predict)
-                frames_data.append({
-                    'timestamp': gt_pose_msg.header.stamp.to_sec(),
-                    'gt_pose': gt_pose_wc,
-                    'lanes_gt': lanes_gt,
-                    'lanes_predict': lanes_predict
-                })
-                gt_pose_msg = None
-                lanes_gt_msg = None
-                lanes_predict_msg = None
-
+        frames_data = list(read_openlane_frames(self.bag_file))
+        if not frames_data:
+            raise ValueError(f'{self.bag_file}: no synchronized OpenLane frames')
+        for frame in frames_data:
+            self.preprocess_lanes(frame['lanes_gt'])
+            self.preprocess_lanes(frame['lanes_predict'])
         return frames_data
 
     def preprocess_lanes(self, lanes):

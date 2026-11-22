@@ -7,12 +7,10 @@ from misc.curve.bspline import CubicBSplineCurve
 from scipy.spatial import KDTree
 import gtsam
 from gtsam.symbol_shorthand import P
-import gtsam.utils.plot as gtsam_plot
 from typing import List, Optional
 from functools import partial
 import matplotlib.pyplot as plt
-import matplotlib
-matplotlib.use('TkAgg')
+from matplotlib.patches import Ellipse
 
 class CubicBSplineApproximator:
     # default four control points
@@ -228,7 +226,13 @@ class BSplineGridApproximator:
         ax.scatter(meas_points[:,0], meas_points[:,1], c='r')
         ax.scatter(result_points[:,0], result_points[:,1], c='b')
         for key, value in self.all_nodes.items():
-            gtsam_plot.plot_point2_on_axes(ax, value['xyz'][:2], 0.5, value['cov'][:2,:2])
+            point = value['xyz'][:2]
+            eigenvalues, eigenvectors = np.linalg.eigh(value['cov'][:2, :2])
+            # GTSAM's 95% confidence ellipse uses this chi-square radius.
+            width, height = 2 * 2.447746830681 * np.sqrt(eigenvalues)
+            angle = np.degrees(np.arctan2(eigenvectors[1, 0], eigenvectors[0, 0]))
+            ax.plot(*point, marker='.', markersize=10)
+            ax.add_patch(Ellipse(point, width, height, angle=angle, fill=False))
 
         major_ticks_x = np.arange(min_x, max_x, self.x_res)
         ax.set_xticks(major_ticks_x)

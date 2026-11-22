@@ -13,15 +13,14 @@ import numpy as np
 from datetime import datetime
 from tqdm import tqdm
 from lane_slam.eval_assoc import EvalOneSegment
-from misc.config import define_args
-from misc.config import cfg, cfg_from_yaml_file, log_config_to_file
+from misc.config import cfg, config_from_args, define_args, log_config_to_file
 from multiprocessing import Pool
 import glob
 
 def run_segments(bag_paths):
     eval_stats_list = []
-    for rosbag_file in tqdm(bag_paths, leave=False, dynamic_ncols=True):
-        evaluator = EvalOneSegment(rosbag_file)
+    for bag_file in tqdm(bag_paths, leave=False, dynamic_ncols=True):
+        evaluator = EvalOneSegment(bag_file)
         eval_stats = evaluator.eval_assoc()
         if eval_stats.shape[0] == 0:
             continue
@@ -52,9 +51,13 @@ def main(output_file):
     sys.stdout = Logger(output_file)
     log_config_to_file(cfg)
 
-    rosbag_dir = os.path.join(openlane_dir, 'lane3d_1000', 'rosbag')
-    rosbag_flies = glob.glob(os.path.join(rosbag_dir, '*.bag'))
-    eval_stats_list = run_all_segments(rosbag_flies, multi_process=True, num_workers=20)
+    bag_dir = os.path.join(openlane_dir, 'lane3d_1000', 'rosbag')
+    bag_paths = glob.glob(os.path.join(bag_dir, '*.bag'))
+    if not bag_paths:
+        raise FileNotFoundError(f'No OpenLane bags in {bag_dir}')
+    eval_stats_list = run_all_segments(bag_paths, multi_process=True, num_workers=min(20, len(bag_paths)))
+    if not eval_stats_list:
+        raise ValueError('No frame pairs to score. Check bag length and lane_asso.fstep_bm.')
     eval_stats_list = np.concatenate(eval_stats_list, axis=0)
     result_str = 'f1 score: {:.4f}, precision: {:.4f}, recall: {:.4f}, time: {:.4f} ms'. \
         format(np.mean(eval_stats_list[:, 0]),
@@ -111,10 +114,8 @@ def benchmark():
 if __name__ == '__main__':
 
     args = define_args()
-    cfg_from_yaml_file(os.path.join(ROOT_DIR, args.cfg_file), cfg)
+    config_from_args(args)
     np.random.seed(666)
-    cfg_name = args.cfg_file.split('/')[-1].split('.')[0]
-    cfg.output_dir = os.path.join(cfg.ROOT_DIR, "outputs", cfg_name)
     if args.bm:
         benchmark()
     else:
